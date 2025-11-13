@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, CheckCircle, XCircle, FileText, TrendingUp, BookOpen, Trash2, Eye, Search, Sparkles, Award, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Upload, CheckCircle, XCircle, FileText, TrendingUp, BookOpen, Trash2, Eye, Search, Sparkles, Award, Loader2, Megaphone, Plus, Edit2, Send } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@clerk/clerk-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-
-// Refresh trigger state for manual refetch
-let refetchTrigger = 0;
 
 // Admin Guard Component
 const AdminOnly = ({ children }) => {
@@ -67,6 +64,269 @@ const StatsCard = ({ icon: Icon, title, value, color = "from-indigo-500 to-purpl
   </motion.div>
 );
 
+// Announcements Section Component
+const AnnouncementsSection = () => {
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    message: '',
+    priority: 'normal',
+    targetDepartment: 'all'
+  });
+
+  const announcements = useQuery(api.announcements.getAllAnnouncements);
+  const createAnnouncement = useMutation(api.announcements.createAnnouncement);
+  const updateAnnouncement = useMutation(api.announcements.updateAnnouncement);
+  const deleteAnnouncement = useMutation(api.announcements.deleteAnnouncement);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      if (editingId) {
+        await updateAnnouncement({
+          announcementId: editingId,
+          ...formData
+        });
+      } else {
+        await createAnnouncement(formData);
+      }
+      
+      setFormData({
+        title: '',
+        message: '',
+        priority: 'normal',
+        targetDepartment: 'all'
+      });
+      setShowForm(false);
+      setEditingId(null);
+    } catch (error) {
+      console.error("Error saving announcement:", error);
+      alert("Error saving announcement: " + error.message);
+    }
+  };
+
+  const handleEdit = (announcement) => {
+    setFormData({
+      title: announcement.title,
+      message: announcement.message,
+      priority: announcement.priority,
+      targetDepartment: announcement.targetDepartment
+    });
+    setEditingId(announcement._id);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this announcement?')) {
+      try {
+        await deleteAnnouncement({ announcementId: id });
+      } catch (error) {
+        console.error("Error deleting announcement:", error);
+        alert("Error deleting announcement: " + error.message);
+      }
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'urgent': return 'from-red-500 to-orange-500';
+      case 'important': return 'from-yellow-500 to-orange-500';
+      default: return 'from-blue-500 to-indigo-500';
+    }
+  };
+
+  const getPriorityBadge = (priority) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-500/20 border-red-500/30 text-red-400';
+      case 'important': return 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400';
+      default: return 'bg-blue-500/20 border-blue-500/30 text-blue-400';
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-8 bg-[#0F153A]/60 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0px_0px_30px_#1a1a3f50]"
+    >
+      <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center">
+          <Megaphone className="w-6 h-6 mr-3 text-indigo-400" />
+          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300">Announcements</h2>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            setShowForm(!showForm);
+            if (showForm) {
+              setEditingId(null);
+              setFormData({
+                title: '',
+                message: '',
+                priority: 'normal',
+                targetDepartment: 'all'
+              });
+            }
+          }}
+          className="flex items-center gap-2 px-6 py-3 font-semibold text-white transition-all duration-300 shadow-lg bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl hover:from-indigo-600 hover:to-purple-600 shadow-purple-500/30 hover:shadow-purple-500/50"
+        >
+          <Plus className="w-5 h-5" />
+          {showForm ? 'Cancel' : 'New Announcement'}
+        </motion.button>
+      </div>
+
+      <AnimatePresence>
+        {showForm && (
+          <motion.form
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            onSubmit={handleSubmit}
+            className="mb-6 p-6 bg-[#070B26]/80 border border-white/10 rounded-2xl space-y-4"
+          >
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-300">Title *</label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full px-4 py-3 bg-[#0F153A]/80 border border-white/10 rounded-xl text-white outline-none focus:border-purple-500/50 focus:shadow-[0px_0px_20px_#6C4EFF22] transition-all placeholder-gray-500"
+                placeholder="Enter announcement title"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-300">Message *</label>
+              <textarea
+                required
+                rows={4}
+                value={formData.message}
+                onChange={(e) => setFormData({...formData, message: e.target.value})}
+                className="w-full px-4 py-3 bg-[#0F153A]/80 border border-white/10 rounded-xl text-white outline-none focus:border-purple-500/50 focus:shadow-[0px_0px_20px_#6C4EFF22] transition-all placeholder-gray-500 resize-none"
+                placeholder="Enter announcement message"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-300">Priority *</label>
+                <select
+                  value={formData.priority}
+                  onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                  className="w-full px-4 py-3 bg-[#0F153A]/80 border border-white/10 rounded-xl text-white outline-none focus:border-purple-500/50 focus:shadow-[0px_0px_20px_#6C4EFF22] transition-all"
+                >
+                  <option value="normal">Normal</option>
+                  <option value="important">Important</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-300">Target Department *</label>
+                <select
+                  value={formData.targetDepartment}
+                  onChange={(e) => setFormData({...formData, targetDepartment: e.target.value})}
+                  className="w-full px-4 py-3 bg-[#0F153A]/80 border border-white/10 rounded-xl text-white outline-none focus:border-purple-500/50 focus:shadow-[0px_0px_20px_#6C4EFF22] transition-all"
+                >
+                  <option value="all">All Departments</option>
+                  <option value="BCA">BCA</option>
+                  <option value="BBA">BBA</option>
+                  <option value="B.Com">B.Com</option>
+                  <option value="BA">BA</option>
+                  <option value="BSc">BSc</option>
+                </select>
+              </div>
+            </div>
+
+            <motion.button
+              type="submit"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center justify-center w-full gap-2 py-3 font-semibold text-white transition-all duration-300 shadow-lg bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl hover:from-indigo-600 hover:to-purple-600 shadow-purple-500/30 hover:shadow-purple-500/50"
+            >
+              <Send className="w-5 h-5" />
+              {editingId ? 'Update Announcement' : 'Post Announcement'}
+            </motion.button>
+          </motion.form>
+        )}
+      </AnimatePresence>
+
+      <div className="space-y-4">
+        {announcements === undefined ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 mr-3 text-purple-400 animate-spin" />
+            <p className="text-gray-400">Loading announcements...</p>
+          </div>
+        ) : announcements.length === 0 ? (
+          <div className="py-12 text-center text-gray-400">
+            <Megaphone className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+            <p className="text-lg font-medium">No announcements yet</p>
+            <p className="text-sm text-gray-500">Create your first announcement to get started</p>
+          </div>
+        ) : (
+          announcements.map((announcement, index) => (
+            <motion.div
+              key={announcement._id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="p-6 bg-[#070B26]/60 border border-white/10 rounded-2xl hover:border-purple-500/30 transition-all"
+            >
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <h3 className="text-xl font-bold text-white">{announcement.title}</h3>
+                    <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold border rounded-full ${getPriorityBadge(announcement.priority)}`}>
+                      {announcement.priority.toUpperCase()}
+                    </span>
+                    <span className="inline-flex items-center px-3 py-1 text-xs font-semibold text-indigo-400 border rounded-full bg-indigo-500/20 border-indigo-500/30">
+                      {announcement.targetDepartment === 'all' ? 'All Departments' : announcement.targetDepartment}
+                    </span>
+                  </div>
+                  <p className="mb-3 text-gray-300 whitespace-pre-wrap">{announcement.message}</p>
+                  <p className="text-sm text-gray-500">
+                    Posted on {new Date(announcement._creationTime).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleEdit(announcement)}
+                    className="p-2 text-blue-400 transition-colors border rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border-blue-500/30"
+                    title="Edit"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleDelete(announcement._id)}
+                    className="p-2 text-red-400 transition-colors border rounded-lg bg-red-500/20 hover:bg-red-500/30 border-red-500/30"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          ))
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
 // Upload Paper Section
 const UploadPaper = ({ onUpload }) => {
   const [formData, setFormData] = useState({
@@ -94,10 +354,7 @@ const UploadPaper = ({ onUpload }) => {
     setUploading(true);
 
     try {
-      // Step 1: Get upload URL from Convex
       const uploadUrl = await generateUploadUrl();
-
-      // Step 2: Upload file to Convex storage
       const response = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": file.type },
@@ -110,8 +367,7 @@ const UploadPaper = ({ onUpload }) => {
 
       const { storageId } = await response.json();
 
-      // Step 3: Create paper record in database
-      const paperId = await uploadPaper({
+      await uploadPaper({
         title: formData.title,
         subject: formData.subject,
         department: formData.department,
@@ -120,15 +376,10 @@ const UploadPaper = ({ onUpload }) => {
         exam_type: formData.exam_type,
         fileId: storageId,
       });
-
-      console.log("Paper uploaded successfully:", paperId);
       
-      // Trigger refetch
       onUpload();
-      
       alert("✅ Paper uploaded successfully!");
       
-      // Reset form
       setFormData({
         title: '',
         subject: '',
@@ -309,7 +560,7 @@ const ManagePapers = ({ papers, onToggleVerify, onDelete, isLoading }) => {
         className="p-8 bg-[#0F153A]/60 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0px_0px_30px_#1a1a3f50]"
       >
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-purple-400 animate-spin mr-3" />
+          <Loader2 className="w-8 h-8 mr-3 text-purple-400 animate-spin" />
           <p className="text-gray-400">Loading papers...</p>
         </div>
       </motion.div>
@@ -456,9 +707,9 @@ const ManagePapers = ({ papers, onToggleVerify, onDelete, isLoading }) => {
 const AdminDashboard = () => {
   const { user } = useUser();
   const allPapers = useQuery(api.papers.getAllPapersAdmin);
+  const announcements = useQuery(api.announcements.getAllAnnouncements);
   const [refetchKey, setRefetchKey] = useState(0);
   
-  // Force refetch by changing the key
   const papers = allPapers || [];
   const isLoading = allPapers === undefined;
 
@@ -469,11 +720,10 @@ const AdminDashboard = () => {
     total: papers.length,
     verified: papers.filter(p => p.verified).length,
     pending: papers.filter(p => !p.verified).length,
-    departments: new Set(papers.map(p => p.department)).size
+    announcements: announcements?.length || 0
   };
 
   const handleUpload = () => {
-    // Force refetch by re-running the query
     setRefetchKey(prev => prev + 1);
   };
 
@@ -554,11 +804,16 @@ const AdminDashboard = () => {
             color="from-yellow-500 to-orange-500"
           />
           <StatsCard
-            icon={BookOpen}
-            title="Departments"
-            value={stats.departments}
+            icon={Megaphone}
+            title="Announcements"
+            value={stats.announcements}
             color="from-purple-500 to-pink-500"
           />
+        </div>
+
+        {/* Announcements Section */}
+        <div className="mb-8">
+          <AnnouncementsSection />
         </div>
 
         {/* Upload Section */}
