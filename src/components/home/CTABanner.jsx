@@ -75,7 +75,7 @@ const CTABanner = () => {
             transition={{ delay: 0.3 }}
             className="max-w-2xl mx-auto mb-8 text-lg md:text-xl text-blue-100"
           >
-            Join 50,000+ students who trust our platform for their exam preparation
+            Join 2000+ students who trust our platform for their exam preparation
           </motion.p>
 
           <motion.div
