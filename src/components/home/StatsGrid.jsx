@@ -6,28 +6,28 @@ const StatsGrid = () => {
   const stats = [
     { 
       label: "Total Papers", 
-      value: "10,000+", 
+      value: "1000+", 
       icon: FileText, 
       color: "from-blue-500 to-blue-600",
       delay: 0.1 
     },
     { 
       label: "Departments", 
-      value: "24", 
+      value: "17", 
       icon: BookOpen, 
       color: "from-purple-500 to-purple-600",
       delay: 0.2 
     },
     { 
       label: "Active Students", 
-      value: "50k+", 
+      value: "2k+", 
       icon: Users, 
       color: "from-emerald-500 to-emerald-600",
       delay: 0.3 
     },
     { 
       label: "Verified Papers", 
-      value: "98%", 
+      value: "99%", 
       icon: CheckCircle, 
       color: "from-orange-500 to-orange-600",
       delay: 0.4 
